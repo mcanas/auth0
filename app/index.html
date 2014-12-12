@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+
+	<!-- Setting the right viewport -->
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+	<link rel="stylesheet" href="vendor/bootstrap/dist/css/bootstrap.min.css">
+
+	<style>
+		body {
+			padding: 20px 0;
+		}
+	</style>
+</head>
+
+<body ng-app="authTest" ng-cloak>
+	<div class="container">
+		<ng-include src="'common/nav.tpl.html'"></ng-include>
+		<div role="main" ui-view></div>
+	</div>
+
+	<script src="vendor/jquery/dist/jquery.min.js"></script>
+	<script src="vendor/bootstrap/dist/js/bootstrap.min.js"></script>
+
+	<script src="vendor/angular/angular.min.js"></script>
+	<script src="vendor/angular-ui-router/release/angular-ui-router.min.js"></script>
+	<script src="vendor/angular-cookies/angular-cookies.min.js"></script>
+
+	<script src="vendor/auth0.js/build/auth0.min.js"></script>
+	<script src="vendor/a0-angular-storage/dist/angular-storage.min.js"></script>
+	<script src="vendor/angular-jwt/dist/angular-jwt.min.js"></script>
+	<script src="vendor/auth0-angular/build/auth0-angular.min.js"></script>
+
+	<script src="home/home.js"></script>
+	<script src="login/login.js"></script>
+	<script src="logout/logout.js"></script>
+	<script src="signup/signup.js"></script>
+
+	<script>
+	angular.module('authTest', [
+		'ui.router',
+		'auth0', 
+		'angular-storage', 
+		'angular-jwt',
+		'authTest.home',
+		'authTest.login',
+		'authTest.logout',
+		'authTest.signup'
+	])
+	.config(function($stateProvider, $httpProvider, $urlRouterProvider, authProvider, jwtInterceptorProvider) {
+		$urlRouterProvider.otherwise('/login');
+
+		$stateProvider
+			.state('root', {
+				abstract: true,
+				controller: 'RootCtrl',
+				template: '<ui-view></ui-view>'
+			});
+
+		authProvider.init({
+			domain: 'mcanas.auth0.com',
+			clientID: '5oScqF03x7Tw7zaEC3jQmuMfzefKVIgF',
+			loginState: 'root.login'
+		})
+
+		authProvider.on('logout', function() {
+			console.log('logout', arguments);
+		})
+
+		authProvider.on('loginSuccess', function() {
+			console.log('loginSuccess', arguments);
+		})
+
+		authProvider.on('authenticated', function( auth ) {
+			console.log('authenticated', arguments);
+		})
+
+		jwtInterceptorProvider.tokenGetter = function( store, $http, jwtHelper ) {
+			return store.get('token');
+		};
+
+		$httpProvider.interceptors.push('jwtInterceptor');
+
+	})
+	.controller('RootCtrl', function($rootScope, $state, auth) {
+		console.log('RootCtrl');
+
+		$rootScope.isState = function( name ) {
+			return $state.current.url.indexOf('/'+name) === 0;
+		}
+
+		$rootScope.isAuthenticated = false;
+		if(auth.profilePromise) {
+			auth.profilePromise.then(function(profile) {
+				$rootScope.profile = profile;
+				$rootScope.isAuthenticated = true;
+			})
+		}
+	})
+	.run(function($rootScope, $state, auth, store, jwtHelper) {
+		console.log('Run');
+		auth.hookEvents();
+
+		$rootScope.$on('$locationChangeStart', function() {
+			if(!auth.isAuthenticated) {
+				var token = store.get('token');
+				if(token) {
+					if(!jwtHelper.isTokenExpired(token)) {
+						auth.authenticate(store.get('profile'), token);
+					} else {
+						$state.go('root.login');
+					}
+				}
+			}
+		});
+	})
+	;
+	</script>
+</body>
+
+</html>

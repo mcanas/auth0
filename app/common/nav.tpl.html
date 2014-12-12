@@ -1,0 +1,17 @@
+<nav class="navbar navbar-default" role="navigation">
+	<div class="container-fluid" ng-switch on="isAuthenticated">
+		<div class="navbar-header">
+			<a href="#/" class="navbar-brand">Auth0 Test</a>
+		</div>
+		
+		<ul class="nav navbar-nav pull-right" ng-switch-default>
+			<li ng-class="{'active':isState('signup')}"><a href="#/signup">Sign Up</a></li>
+			<li ng-class="{'active':isState('login')}"><a href="#/login">Log In</a></li>
+	    </ul>
+
+		<ul class="nav navbar-nav pull-right" ng-switch-when="true">
+			<li ng-class="{'active':isState('profile')}"><a href="#/profile">{{ profile.nickname || 'Profile' }}</a></li>
+			<li ng-class="{'active':isState('logout')}"><a href="#/logout">Log Out</a></li>
+		</ul>
+	</div>
+</nav>
